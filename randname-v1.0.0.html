@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Random Name Picker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <style>
+        .theme-ocean { --bg-primary: #0891b2; --bg-secondary: #0e7490; --text-primary: #e0f2fe; }
+        .theme-sunset { --bg-primary: #dc2626; --bg-secondary: #ea580c; --text-primary: #fef3c7; }
+        .theme-forest { --bg-primary: #059669; --bg-secondary: #047857; --text-primary: #d1fae5; }
+        .theme-purple { --bg-primary: #7c3aed; --bg-secondary: #6d28d9; --text-primary: #ede9fe; }
+        
+        .custom-bg {
+            background-color: var(--bg-primary, #3b82f6);
+            color: var(--text-primary, #ffffff);
+        }
+        
+        .custom-bg-secondary {
+            background-color: var(--bg-secondary, #2563eb);
+        }
+        
+        .bg-overlay {
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            position: relative;
+        }
+        
+        .bg-overlay::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 0;
+        }
+        
+        .bg-overlay > * {
+            position: relative;
+            z-index: 1;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col transition-colors duration-300">
+    <div id="app" class="flex-1 flex flex-col min-h-screen">
+        <!-- Header -->
+        <header class="custom-bg shadow-lg p-4">
+            <div class="container mx-auto flex justify-between items-center">
+                <h1 class="text-2xl font-bold">Random Name Picker</h1>
+                <div class="flex gap-2">
+                    <!-- Theme Switcher -->
+                    <button id="themeBtn" class="p-2 rounded-full hover:bg-white/20 transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                        </svg>
+                    </button>
+                    <!-- Settings Gear -->
+                    <button id="settingsBtn" class="p-2 rounded-full hover:bg-white/20 transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-1 container mx-auto p-4 md:p-8">
+            <!-- Names List -->
+            <div id="namesList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
+                <!-- Names will be populated here -->
+            </div>
+
+            <!-- Randomize Button -->
+            <div class="text-center">
+                <button id="randomizeBtn" class="custom-bg-secondary px-8 py-4 rounded-full text-lg font-bold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200">
+                    RANDOMIZE
+                </button>
+            </div>
+
+            <!-- Results -->
+            <div id="results" class="mt-8 hidden">
+                <h2 class="text-2xl font-bold mb-4 text-center dark:text-white">Randomized Order</h2>
+                <div id="resultsList" class="flex flex-wrap gap-3 justify-center">
+                    <!-- Results will be populated here -->
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="custom-bg py-4 px-4 text-center text-sm">
+            <p>
+                Copyright © <span id="currentYear"></span> 
+                <a href="https://evoknow.com" target="_blank" class="hover:underline">EVOKNOW</a> | 
+                <a href="https://en.wikipedia.org/wiki/MIT_License" target="_blank" class="hover:underline">MIT License</a> | 
+                V1.0.0
+            </p>
+        </footer>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4">
+            <h2 class="text-2xl font-bold mb-4 dark:text-white">Settings</h2>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-2 dark:text-gray-200">Number of Names</label>
+                <input type="number" id="nameCount" min="2" max="100" value="10" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-2 dark:text-gray-200">Theme</label>
+                <select id="themeSelect" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="light">Light</option>
+                    <option value="dark">Dark</option>
+                    <option value="ocean">Ocean</option>
+                    <option value="sunset">Sunset</option>
+                    <option value="forest">Forest</option>
+                    <option value="purple">Purple</option>
+                </select>
+            </div>
+
+            <div class="mb-6">
+                <label class="block text-sm font-medium mb-2 dark:text-gray-200">Background Image URL</label>
+                <input type="text" id="bgImageUrl" placeholder="Enter image URL (optional)" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+            </div>
+
+            <div class="mb-4">
+                <h3 class="text-lg font-semibold mb-2 dark:text-white">Edit Names</h3>
+                <div id="namesEditor" class="max-h-60 overflow-y-auto space-y-2">
+                    <!-- Name inputs will be populated here -->
+                </div>
+            </div>
+
+            <div class="flex gap-2 justify-end">
+                <button id="cancelSettings" class="px-4 py-2 border rounded-lg hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700 dark:text-white">Cancel</button>
+                <button id="saveSettings" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            let names = [];
+            let currentTheme = 'light';
+            const version = '1.0.0';
+            
+            // Initialize
+            function init() {
+                $('#currentYear').text(new Date().getFullYear());
+                loadNames(10);
+                renderNames();
+                loadTheme();
+            }
+            
+            // Load default names
+            function loadNames(count) {
+                names = [];
+                for (let i = 1; i <= count; i++) {
+                    names.push(`Name ${i}`);
+                }
+            }
+            
+            // Render names list
+            function renderNames() {
+                const $namesList = $('#namesList');
+                $namesList.empty();
+                
+                names.forEach((name, index) => {
+                    const $card = $('<div>')
+                        .addClass('bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md text-center dark:text-white')
+                        .html(`<span class="text-lg">${name}</span>`);
+                    $namesList.append($card);
+                });
+            }
+            
+            // Randomize names
+            function randomizeNames() {
+                const shuffled = [...names].sort(() => Math.random() - 0.5);
+                const $resultsList = $('#resultsList');
+                $resultsList.empty();
+                
+                shuffled.forEach((name, index) => {
+                    const $pill = $('<div>')
+                        .addClass('flex items-center gap-2 custom-bg px-4 py-2 rounded-full shadow-md')
+                        .html(`
+                            <span class="w-8 h-8 bg-white text-gray-800 rounded-full flex items-center justify-center font-bold">
+                                ${index + 1}
+                            </span>
+                            <span class="font-medium">${name}</span>
+                        `);
+                    $resultsList.append($pill);
+                });
+                
+                $('#results').removeClass('hidden');
+                $('html, body').animate({
+                    scrollTop: $('#results').offset().top - 20
+                }, 500);
+            }
+            
+            // Theme management
+            function loadTheme() {
+                const savedTheme = localStorage.getItem('theme') || 'light';
+                applyTheme(savedTheme);
+            }
+            
+            function applyTheme(theme) {
+                currentTheme = theme;
+                $('body').removeClass('dark theme-ocean theme-sunset theme-forest theme-purple');
+                
+                if (theme === 'dark') {
+                    $('body').addClass('dark');
+                } else if (theme !== 'light') {
+                    $('body').addClass(`theme-${theme}`);
+                }
+                
+                localStorage.setItem('theme', theme);
+            }
+            
+            // Event handlers
+            $('#randomizeBtn').click(randomizeNames);
+            
+            $('#themeBtn').click(function() {
+                const themes = ['light', 'dark', 'ocean', 'sunset', 'forest', 'purple'];
+                const currentIndex = themes.indexOf(currentTheme);
+                const nextTheme = themes[(currentIndex + 1) % themes.length];
+                applyTheme(nextTheme);
+                $('#themeSelect').val(nextTheme);
+            });
+            
+            $('#settingsBtn').click(function() {
+                $('#nameCount').val(names.length);
+                $('#themeSelect').val(currentTheme);
+                renderNamesEditor();
+                $('#settingsModal').removeClass('hidden');
+            });
+            
+            $('#cancelSettings, #settingsModal').click(function(e) {
+                if (e.target.id === 'settingsModal' || e.target.id === 'cancelSettings') {
+                    $('#settingsModal').addClass('hidden');
+                }
+            });
+            
+            $('#saveSettings').click(function() {
+                const count = parseInt($('#nameCount').val());
+                const theme = $('#themeSelect').val();
+                const bgUrl = $('#bgImageUrl').val();
+                
+                // Update names from editor
+                names = [];
+                $('#namesEditor input').each(function() {
+                    const value = $(this).val().trim();
+                    if (value) names.push(value);
+                });
+                
+                // Ensure we have the right count
+                while (names.length < count) {
+                    names.push(`Name ${names.length + 1}`);
+                }
+                names = names.slice(0, count);
+                
+                // Apply theme
+                applyTheme(theme);
+                
+                // Apply background image
+                if (bgUrl) {
+                    $('#app').addClass('bg-overlay').css('background-image', `url(${bgUrl})`);
+                } else {
+                    $('#app').removeClass('bg-overlay').css('background-image', '');
+                }
+                
+                renderNames();
+                $('#results').addClass('hidden');
+                $('#settingsModal').addClass('hidden');
+            });
+            
+            $('#nameCount').on('input', function() {
+                renderNamesEditor();
+            });
+            
+            function renderNamesEditor() {
+                const count = parseInt($('#nameCount').val());
+                const $editor = $('#namesEditor');
+                $editor.empty();
+                
+                for (let i = 0; i < count; i++) {
+                    const currentName = names[i] || `Name ${i + 1}`;
+                    const $input = $('<input>')
+                        .attr('type', 'text')
+                        .attr('placeholder', `Name ${i + 1}`)
+                        .val(currentName)
+                        .addClass('w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white');
+                    $editor.append($input);
+                }
+            }
+            
+            // Initialize app
+            init();
+        });
+    </script>
+</body>
+</html>
