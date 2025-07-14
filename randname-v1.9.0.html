@@ -174,7 +174,7 @@
                 Copyright © <span id="currentYear"></span> 
                 <a href="https://evoknow.com" target="_blank" class="hover:underline">EVOKNOW</a> | 
                 <a href="https://en.wikipedia.org/wiki/MIT_License" target="_blank" class="hover:underline">MIT License</a> | 
-                V1.6.0
+                V1.9.0
             </p>
             <p class="text-xs opacity-75">
                 App opened: <span id="openCount">0</span> times | Randomized: <span id="randomizeCount">0</span> times
@@ -205,6 +205,16 @@
                 </select>
             </div>
 
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-2 dark:text-gray-200">Profile Picture Style</label>
+                <select id="profileStyleSelect" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="fun-emoji">Fun Emoji</option>
+                    <option value="adventurer">Adventurer</option>
+                    <option value="bottts">Bottts (Robots)</option>
+                    <option value="identicon">Identicon (Geometric)</option>
+                </select>
+            </div>
+
             <div class="mb-6">
                 <label class="block text-sm font-medium mb-2 dark:text-gray-200">Background Image URL</label>
                 <input type="text" id="bgImageUrl" placeholder="Enter image URL (optional)" class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white">
@@ -229,11 +239,12 @@
             let names = [];
             let currentTheme = 'light';
             let lastRandomizedOrder = [];
-            const version = '1.6.0';
+            const version = '1.9.0';
             const STORAGE_KEY = 'randomPickerNames';
             const THEME_KEY = 'randomPickerTheme';
             const BG_IMAGE_KEY = 'randomPickerBgImage';
             const STATS_KEY = 'randomPickerStats';
+            const PROFILE_STYLE_KEY = 'randomPickerProfileStyle';
             
             // Initialize
             function init() {
@@ -436,6 +447,18 @@
                 return `name-color-${index % 20}`;
             }
             
+            // Get current profile style
+            function getProfileStyle() {
+                return localStorage.getItem(PROFILE_STYLE_KEY) || 'fun-emoji';
+            }
+            
+            // Generate profile picture URL
+            function getProfilePictureUrl(name) {
+                const seed = encodeURIComponent(name);
+                const style = getProfileStyle();
+                return `https://api.dicebear.com/7.x/${style}/svg?seed=${seed}`;
+            }
+            
             // Render names list
             function renderNames() {
                 const $namesList = $('#namesList');
@@ -443,10 +466,16 @@
                 
                 names.forEach((name, index) => {
                     const colorClass = getColorClass(index);
+                    const profileUrl = getProfilePictureUrl(name);
                     const $card = $('<div>')
                         .addClass(`name-card ${colorClass} text-white p-4 rounded-lg shadow-md text-center transition-transform hover:scale-105`)
                         .attr('data-index', index)
-                        .html(`<span class="text-lg font-medium">${name}</span>`);
+                        .html(`
+                            <div class="flex flex-col items-center gap-2">
+                                <img src="${profileUrl}" alt="${name}" class="w-12 h-12 rounded-full bg-white p-1" onerror="this.style.display='none'">
+                                <span class="text-lg font-medium">${name}</span>
+                            </div>
+                        `);
                     
                     // Click to edit functionality
                     $card.click(function() {
@@ -470,6 +499,10 @@
                                     .addClass('text-lg font-medium')
                                     .text(names[index]);
                                 $input.replaceWith($newSpan);
+                                // Update profile picture
+                                const $img = $card.find('img');
+                                $img.attr('src', getProfilePictureUrl(names[index]));
+                                $img.attr('alt', names[index]);
                             } else {
                                 const $newSpan = $('<span>')
                                     .addClass('text-lg font-medium')
@@ -479,10 +512,23 @@
                         };
                         
                         $input.blur(saveEdit);
-                        $input.keypress(function(e) {
+                        $input.keydown(function(e) {
                             if (e.which === 13) {
                                 e.preventDefault();
                                 saveEdit();
+                            } else if (e.which === 9) {
+                                e.preventDefault();
+                                saveEdit();
+                                
+                                // Find next name card
+                                const $allCards = $('#namesList .name-card');
+                                const currentIndex = $allCards.index($card);
+                                const nextIndex = currentIndex + 1;
+                                
+                                if (nextIndex < $allCards.length) {
+                                    // Click next card to edit
+                                    $allCards.eq(nextIndex).click();
+                                }
                             }
                         });
                     });
@@ -525,6 +571,7 @@
                 shuffled.forEach((name, index) => {
                     const originalIndex = names.indexOf(name);
                     const colorClass = getColorClass(originalIndex);
+                    const profileUrl = getProfilePictureUrl(name);
                     const $card = $('<div>')
                         .addClass(`${colorClass} text-white p-4 rounded-lg shadow-md text-center`)
                         .html(`
@@ -532,6 +579,7 @@
                                 <span class="w-8 h-8 bg-white text-gray-800 rounded-full flex items-center justify-center font-bold">
                                     ${index + 1}
                                 </span>
+                                <img src="${profileUrl}" alt="${name}" class="w-8 h-8 rounded-full bg-white p-1" onerror="this.style.display='none'">
                                 <span class="font-medium text-lg">${name}</span>
                             </div>
                         `);
@@ -660,6 +708,7 @@
             $('#settingsBtn').click(function() {
                 $('#nameCount').val(names.length);
                 $('#themeSelect').val(currentTheme);
+                $('#profileStyleSelect').val(getProfileStyle());
                 renderNamesEditor();
                 $('#settingsModal').removeClass('hidden');
             });
@@ -674,6 +723,7 @@
                 const count = parseInt($('#nameCount').val());
                 const theme = $('#themeSelect').val();
                 const bgUrl = $('#bgImageUrl').val();
+                const profileStyle = $('#profileStyleSelect').val();
                 
                 // Validate count
                 if (!validateNameCount(count)) {
@@ -701,6 +751,9 @@
                 
                 // Apply theme
                 applyTheme(theme);
+                
+                // Apply profile style
+                localStorage.setItem(PROFILE_STYLE_KEY, profileStyle);
                 
                 // Apply background image
                 if (bgUrl) {
