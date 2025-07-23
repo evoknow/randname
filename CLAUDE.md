@@ -112,3 +112,6 @@ Uses 20 predefined Tailwind colors cycling through indices:
 - No external dependencies beyond CDN resources
 - Mobile-first responsive design
 - Accessibility considerations with hover states and color contrast
+
+## UI/UX Design Guidelines
+- Input labels and input items (text box, dropdown, etc) need to be on their own line

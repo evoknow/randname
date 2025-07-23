@@ -1,0 +1,1319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Random Name Picker</title>
+    <link rel="stylesheet" href="assets/css/tailwind.min.css">
+    <script src="assets/js/jquery-3.7.1.min.js"></script>
+    <style>
+        .theme-ocean { --bg-primary: #0891b2; --bg-secondary: #0e7490; --text-primary: #e0f2fe; }
+        .theme-sunset { --bg-primary: #dc2626; --bg-secondary: #ea580c; --text-primary: #fef3c7; }
+        .theme-forest { --bg-primary: #059669; --bg-secondary: #047857; --text-primary: #d1fae5; }
+        .theme-purple { --bg-primary: #7c3aed; --bg-secondary: #6d28d9; --text-primary: #ede9fe; }
+        
+        .custom-bg {
+            background-color: var(--bg-primary, #3b82f6);
+            color: var(--text-primary, #ffffff);
+        }
+        
+        .custom-bg-secondary {
+            background-color: var(--bg-secondary, #2563eb);
+        }
+        
+        .bg-overlay {
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            position: relative;
+        }
+        
+        .bg-overlay::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 0;
+        }
+        
+        .bg-overlay > * {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .name-color-0 { background-color: #ef4444; }
+        .name-color-1 { background-color: #f97316; }
+        .name-color-2 { background-color: #f59e0b; }
+        .name-color-3 { background-color: #eab308; }
+        .name-color-4 { background-color: #84cc16; }
+        .name-color-5 { background-color: #22c55e; }
+        .name-color-6 { background-color: #10b981; }
+        .name-color-7 { background-color: #14b8a6; }
+        .name-color-8 { background-color: #06b6d4; }
+        .name-color-9 { background-color: #0ea5e9; }
+        .name-color-10 { background-color: #3b82f6; }
+        .name-color-11 { background-color: #6366f1; }
+        .name-color-12 { background-color: #8b5cf6; }
+        .name-color-13 { background-color: #a855f7; }
+        .name-color-14 { background-color: #d946ef; }
+        .name-color-15 { background-color: #ec4899; }
+        .name-color-16 { background-color: #f43f5e; }
+        .name-color-17 { background-color: #64748b; }
+        .name-color-18 { background-color: #475569; }
+        .name-color-19 { background-color: #71717a; }
+        
+        .name-card {
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .name-card:hover::after {
+            content: 'Click to edit';
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.75rem;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+        
+        .edit-input {
+            background: transparent;
+            border: 2px solid white;
+            outline: none;
+            text-align: center;
+        }
+        
+        .draggable {
+            cursor: move;
+        }
+        
+        .dragging {
+            opacity: 0.5;
+        }
+        
+        .drop-zone {
+            min-height: 100px;
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        
+        .drop-zone.drag-over {
+            background-color: #e0e7ff;
+            border-color: #6366f1;
+        }
+        
+        [draggable="true"] {
+            -webkit-user-drag: element;
+        }
+
+        /* Full-screen modal styles */
+        .groups-modal-fullscreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 9999;
+            backdrop-filter: blur(5px);
+        }
+        
+        .groups-modal-container {
+            width: 100%;
+            height: 100%;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .dark .groups-modal-container {
+            background: #1f2937;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col transition-colors duration-300">
+    <div id="app" class="flex-1 flex flex-col min-h-screen">
+        <!-- Header -->
+        <header class="custom-bg shadow-lg p-4">
+            <div class="container mx-auto flex justify-between items-center">
+                <h1 class="text-2xl font-bold">Random Name Picker</h1>
+                <div class="flex gap-2">
+                    <!-- Import Button -->
+                    <button id="importBtn" class="p-2 rounded-full hover:bg-white/20 transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                        </svg>
+                    </button>
+                    <!-- Theme Switcher -->
+                    <button id="themeBtn" class="p-2 rounded-full hover:bg-white/20 transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                        </svg>
+                    </button>
+                    <!-- Help Button -->
+                    <button id="helpBtn" class="p-2 rounded-full hover:bg-white/20 transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </button>
+                    <!-- Settings Gear -->
+                    <button id="settingsBtn" class="p-2 rounded-full hover:bg-white/20 transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Hidden file input -->
+        <input type="file" id="fileInput" accept=".txt,.csv" style="display: none;">
+
+        <!-- Main Content -->
+        <main class="flex-1 container mx-auto p-4 md:p-8">
+            <!-- Names List -->
+            <div id="namesList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
+                <!-- Names will be populated here -->
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex gap-4 justify-center">
+                <button id="randomizeBtn" class="custom-bg-secondary px-8 py-4 rounded-full text-lg font-bold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200">
+                    RANDOMIZE
+                </button>
+                <button id="editBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-full text-lg font-bold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 hidden">
+                    EDIT
+                </button>
+                <button id="groupsBtn" class="bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-full text-lg font-bold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200">
+                    GROUPS
+                </button>
+                <button id="clearBtn" class="bg-red-500 hover:bg-red-600 text-white px-8 py-4 rounded-full text-lg font-bold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200">
+                    CLEAR
+                </button>
+            </div>
+
+            <!-- Results -->
+            <div id="results" class="mt-8 hidden">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800 dark:text-white text-center" style="letter-spacing: 0.05em;">Randomized Order</h2>
+                <div class="flex justify-center gap-4 mb-6">
+                    <button id="shareBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-8 py-4 rounded-lg font-bold">Share on X</button>
+                    <button id="exportBtn" class="bg-green-500 hover:bg-green-600 text-white px-8 py-4 rounded-lg font-bold">Export CSV</button>
+                    <button id="screenshotBtn" class="bg-gray-800 hover:bg-gray-900 text-white px-8 py-4 rounded-lg font-bold">Screenshot</button>
+                </div>
+                <div id="resultsList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-gray-100 dark:bg-gray-800 mt-auto">
+            <div class="container mx-auto p-4 text-center text-sm text-gray-600 dark:text-gray-400">
+                <p>&copy; <span id="currentYear"></span> <a href="https://evoknow.com" target="_blank" class="hover:text-blue-500">EVOKNOW</a>. Licensed under <a href="https://opensource.org/licenses/MIT" target="_blank" class="hover:text-blue-500">MIT License</a>.</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="fixed inset-0 bg-black bg-opacity-80 hidden z-50 flex items-center justify-center" style="backdrop-filter: blur(5px);">
+        <div class="bg-white rounded-3xl max-h-[90vh] overflow-y-auto shadow-2xl" style="background-color: white; width: 50vw; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); margin: 2rem; padding: 25px; border-radius: 1.5rem;">
+            <h2 class="text-2xl font-bold mb-4" style="color: #1f2937;">Settings</h2>
+            
+            <div class="mb-4">
+                <label for="nameCount" class="block text-sm font-medium mb-2" style="color: #374151;">Number of Names</label>
+                <input type="number" id="nameCount" min="2" max="100" class="w-20 px-3 py-2 border rounded-lg" style="background-color: white; border-color: #d1d5db; color: #1f2937;">
+            </div>
+
+            <div class="mb-6">
+                <label class="block text-sm font-medium mb-1" style="color: #374151; display: block; width: 100%;">Theme</label>
+                <select id="themeSelect" class="w-48 px-3 py-2 border rounded-lg" style="background-color: white; border-color: #d1d5db; color: #1f2937; display: block;">
+                    <option value="light">Light</option>
+                    <option value="dark">Dark</option>
+                    <option value="ocean">Ocean</option>
+                    <option value="sunset">Sunset</option>
+                    <option value="forest">Forest</option>
+                    <option value="purple">Purple</option>
+                </select>
+            </div>
+
+            <div class="mb-6">
+                <label class="block text-sm font-medium mb-1" style="color: #374151; display: block; width: 100%;">Profile Picture Style</label>
+                <div class="flex items-center gap-4">
+                    <select id="profileStyleSelect" class="w-48 px-3 py-2 border rounded-lg" style="background-color: white; border-color: #d1d5db; color: #1f2937; display: block;">
+                        <option value="fun-emoji">Fun Emoji</option>
+                        <option value="adventurer">Adventurer</option>
+                        <option value="bottts">Bottts (Robots)</option>
+                        <option value="identicon">Identicon (Geometric)</option>
+                        <option value="avataaars">Avataaars</option>
+                        <option value="pixel-art">Pixel Art</option>
+                    </select>
+                    <img id="profileStyleDemo" src="" alt="Demo" class="w-12 h-12 rounded-full border-2 border-gray-300" style="display: none;">
+                </div>
+            </div>
+
+            <div class="mb-6">
+                <label class="block text-sm font-medium mb-1" style="color: #374151; display: block; width: 100%;">Background Image URL</label>
+                <input type="text" id="bgImageUrl" placeholder="Enter image URL (optional)" class="w-full px-3 py-2 border rounded-lg" style="background-color: white; border-color: #d1d5db; color: #1f2937; display: block;">
+            </div>
+
+            <div class="mb-4">
+                <h3 class="text-lg font-semibold mb-2 text-gray-700 dark:text-white">Edit Names</h3>
+                <div id="namesEditor" class="max-h-60 overflow-y-auto space-y-1">
+                    <!-- Name inputs will be populated here -->
+                </div>
+            </div>
+
+            <div class="flex gap-2 justify-end">
+                <button id="cancelSettings" class="px-4 py-2 border rounded-lg hover:bg-gray-100" style="border-color: #d1d5db; color: #374151;">Cancel</button>
+                <button id="saveSettings" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="helpModal" class="fixed inset-0 bg-black bg-opacity-80 hidden flex items-center justify-center z-50" style="backdrop-filter: blur(5px);">
+        <div class="bg-white rounded-3xl max-h-[90vh] overflow-y-auto shadow-2xl" style="background-color: white; width: 50vw; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); margin: 2rem; padding: 25px; border-radius: 1.5rem;">
+            <h2 class="text-xl font-bold mb-4" style="color: #1f2937;">How to Use Random Name Picker</h2>
+            
+            <div class="space-y-4 text-sm" style="color: #374151;">
+                <div>
+                    <h3 class="font-semibold mb-2">Getting Started</h3>
+                    <ul class="list-disc list-inside space-y-1">
+                        <li>Click on any name to edit it</li>
+                        <li>Click "Add a Name" to add more names</li>
+                        <li>Import names from CSV or text files</li>
+                        <li>Minimum 2 names required</li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="font-semibold mb-2">Keyboard Shortcuts</h3>
+                    <ul class="list-none space-y-1">
+                        <li><kbd class="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">R</kbd> - Randomize names</li>
+                        <li><kbd class="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">E</kbd> - Edit names (show list)</li>
+                        <li><kbd class="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">G</kbd> - Manage groups</li>
+                        <li><kbd class="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">C</kbd> - Clear all names</li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="font-semibold mb-2">Features</h3>
+                    <ul class="list-disc list-inside space-y-1">
+                        <li>6 color themes available</li>
+                        <li>Custom background images</li>
+                        <li>Profile pictures for names</li>
+                        <li>Export results to CSV</li>
+                        <li>Share on Twitter/X</li>
+                        <li>Auto-saves your names</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="flex justify-end mt-6">
+                <button id="closeHelp" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">Got it!</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Groups Modal - Full Screen -->
+    <div id="groupsModal" class="groups-modal-fullscreen hidden">
+        <div class="groups-modal-container">
+            <!-- Header -->
+            <div class="bg-gray-100 dark:bg-gray-700 p-6 border-b border-gray-300 dark:border-gray-600">
+                <div class="flex justify-between items-center">
+                    <h1 class="text-3xl font-bold text-gray-800 dark:text-white">Manage Groups</h1>
+                    <button id="closeGroupsModal" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                <!-- Create Group Section -->
+                <div class="mt-4 flex gap-4 items-center">
+                    <input type="text" id="newGroupName" placeholder="Enter group name" class="px-4 py-2 border rounded-lg w-64 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                    <button id="createGroupBtn" class="px-6 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium">Create Group</button>
+                </div>
+            </div>
+            
+            <!-- Main Content Area -->
+            <div class="flex-1 flex p-6 overflow-hidden">
+                <!-- Available Names (Left Side) -->
+                <div class="w-1/4" style="margin-right: 20px;">
+                    <h2 class="text-xl font-bold mb-4 text-gray-700 dark:text-gray-200">Available Names</h2>
+                    <div id="availableNames" class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 h-full overflow-y-auto border-2 border-dashed border-gray-300 dark:border-gray-600" 
+                         ondrop="handleDrop(event, null)" 
+                         ondragover="handleDragOver(event)" 
+                         ondragleave="handleDragLeave(event)">
+                        <!-- Available names will be populated here -->
+                    </div>
+                </div>
+                
+                <!-- Groups Area (Right Side) -->
+                <div class="flex-1" style="margin-left: 20px;">
+                    <h2 class="text-xl font-bold mb-4 text-gray-700 dark:text-gray-200">Groups</h2>
+                    <div id="groupsList" class="grid grid-cols-3 gap-6 h-full overflow-y-auto">
+                        <!-- Groups will be populated here -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Footer -->
+            <div class="bg-gray-100 dark:bg-gray-700 p-6 border-t border-gray-300 dark:border-gray-600">
+                <div class="flex justify-end gap-4">
+                    <button id="cancelGroups" class="px-8 py-2 border border-gray-400 hover:bg-gray-200 text-gray-700 rounded-lg font-medium">Cancel</button>
+                    <button id="saveGroups" class="px-8 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-bold">Save Groups</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            let names = [];
+            let currentTheme = 'light';
+            let lastRandomizedOrder = [];
+            const version = '1.10.0';
+            const STORAGE_KEY = 'randomPickerNames';
+            const THEME_KEY = 'randomPickerTheme';
+            const BG_IMAGE_KEY = 'randomPickerBgImage';
+            const STATS_KEY = 'randomPickerStats';
+            const PROFILE_STYLE_KEY = 'randomPickerProfileStyle';
+            const GROUPS_KEY = 'randomPickerGroups';
+            let groups = [];
+
+            // Initialize
+            function init() {
+                $('#currentYear').text(new Date().getFullYear());
+                loadFromStorage();
+                renderNames();
+                loadTheme();
+                loadBackgroundImage();
+                incrementOpenCount();
+                updateStatsDisplay();
+                loadGroups();
+            }
+
+            // Load stats from storage
+            function loadStats() {
+                const savedStats = localStorage.getItem(STATS_KEY);
+                if (savedStats) {
+                    return JSON.parse(savedStats);
+                }
+                return {
+                    timesOpened: 0,
+                    timesRandomized: 0,
+                    totalNames: 0
+                };
+            }
+
+            // Save stats to storage
+            function saveStats(stats) {
+                localStorage.setItem(STATS_KEY, JSON.stringify(stats));
+            }
+
+            // Increment open count
+            function incrementOpenCount() {
+                const stats = loadStats();
+                stats.timesOpened += 1;
+                saveStats(stats);
+            }
+
+            // Update stats display
+            function updateStatsDisplay() {
+                const stats = loadStats();
+                console.log(`App opened ${stats.timesOpened} times, randomized ${stats.timesRandomized} times`);
+            }
+
+            // Load default names
+            function loadDefaultNames(count) {
+                names = [];
+                for(let i = 1; i <= count; i++) {
+                    names.push(`Name ${i}`);
+                }
+                saveToStorage();
+                renderNames();
+            }
+
+            // Update profile style demo
+            function updateProfileStyleDemo() {
+                const style = $('#profileStyleSelect').val();
+                const demoUrl = `https://api.dicebear.com/7.x/${style}/svg?seed=Demo&size=48`;
+                $('#profileStyleDemo').attr('src', demoUrl).show();
+            }
+
+            // Add a new name
+            function addName() {
+                const newName = `Name ${names.length + 1}`;
+                names.push(newName);
+                saveToStorage();
+                renderNames();
+            }
+
+            // Remove a name
+            function removeName(index) {
+                if (names.length > 2) {
+                    names.splice(index, 1);
+                    saveToStorage();
+                    renderNames();
+                }
+            }
+
+            // Edit a name
+            function editName(index, newName) {
+                if (newName && newName.trim() !== '') {
+                    names[index] = toCamelCase(newName.trim());
+                    saveToStorage();
+                    renderNames();
+                }
+            }
+
+            // Convert to camelCase
+            function toCamelCase(str) {
+                return str.replace(/\w\S*/g, (txt) => {
+                    return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+                });
+            }
+
+            // Get profile picture style from storage
+            function getProfileStyle() {
+                return localStorage.getItem(PROFILE_STYLE_KEY) || 'fun-emoji';
+            }
+            
+            // Generate profile picture URL
+            function getProfilePictureUrl(name) {
+                const seed = encodeURIComponent(name);
+                const style = getProfileStyle();
+                return `https://api.dicebear.com/7.x/${style}/svg?seed=${seed}&size=32`;
+            }
+            
+            // Render names
+            function renderNames() {
+                const $namesList = $('#namesList');
+                $namesList.empty();
+                
+                names.forEach((name, index) => {
+                    const colorIndex = index % 20;
+                    const profileUrl = getProfilePictureUrl(name);
+                    const $nameCard = $(`
+                        <div class="name-card p-4 rounded-lg text-white font-bold text-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 name-color-${colorIndex}" data-index="${index}">
+                            <div class="flex flex-col items-center">
+                                <img src="${profileUrl}" alt="${name}" class="w-12 h-12 rounded-full mb-2" onerror="this.style.display='none'">
+                                <span class="name-text">${name}</span>
+                            </div>
+                        </div>
+                    `);
+                    $namesList.append($nameCard);
+                });
+
+                // Add "Add a Name" button
+                const $addButton = $(`
+                    <div class="p-4 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-bold text-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 cursor-pointer" id="addNameBtn">
+                        <span>+ Add a Name</span>
+                    </div>
+                `);
+                $namesList.append($addButton);
+            }
+
+            // Save to localStorage
+            function saveToStorage() {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(names));
+            }
+
+            // Load from localStorage
+            function loadFromStorage() {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) {
+                    names = JSON.parse(saved);
+                    if (names.length < 2) {
+                        loadDefaultNames(10);
+                    }
+                } else {
+                    loadDefaultNames(10);
+                }
+            }
+
+            // Randomize names
+            function randomizeNames() {
+                const shuffled = [...names].sort(() => Math.random() - 0.5);
+                lastRandomizedOrder = shuffled;
+                const $resultsList = $('#resultsList');
+                $resultsList.empty();
+                
+                // Hide names list and show edit button
+                $('#namesList').hide();
+                $('#editBtn').show();
+
+                shuffled.forEach((name, index) => {
+                    const originalIndex = names.indexOf(name);
+                    const colorIndex = originalIndex % 20;
+                    const profilePic = getProfilePictureUrl(name);
+                    const $resultCard = $(`
+                        <div class="p-4 rounded-lg text-white font-bold text-center shadow-lg name-color-${colorIndex}">
+                            <div class="text-sm opacity-80 mb-2">#${index + 1}</div>
+                            <div class="flex items-center justify-center gap-3">
+                                <img src="${profilePic}" alt="${name}" class="w-8 h-8 rounded-full">
+                                <div class="text-2xl font-bold">${name}</div>
+                            </div>
+                        </div>
+                    `);
+                    $resultsList.append($resultCard);
+                });
+
+                $('#results').removeClass('hidden');
+                
+                // Update stats
+                const stats = loadStats();
+                stats.timesRandomized += 1;
+                stats.totalNames = names.length;
+                saveStats(stats);
+            }
+
+            // Theme functions
+            function loadTheme() {
+                const savedTheme = localStorage.getItem(THEME_KEY);
+                if (savedTheme) {
+                    currentTheme = savedTheme;
+                }
+                applyTheme(currentTheme);
+            }
+
+            function applyTheme(theme) {
+                $('body').removeClass('theme-light theme-dark theme-ocean theme-sunset theme-forest theme-purple');
+                $('body').addClass(`theme-${theme}`);
+                
+                if (theme === 'dark') {
+                    $('body').addClass('dark');
+                } else {
+                    $('body').removeClass('dark');
+                }
+                
+                currentTheme = theme;
+                localStorage.setItem(THEME_KEY, theme);
+            }
+
+            // Background image functions
+            function loadBackgroundImage() {
+                const savedBgImage = localStorage.getItem(BG_IMAGE_KEY);
+                if (savedBgImage) {
+                    applyBackgroundImage(savedBgImage);
+                }
+            }
+
+            function applyBackgroundImage(imageUrl) {
+                if (imageUrl) {
+                    $('body').addClass('bg-overlay').css('background-image', `url(${imageUrl})`);
+                    localStorage.setItem(BG_IMAGE_KEY, imageUrl);
+                } else {
+                    $('body').removeClass('bg-overlay').css('background-image', '');
+                    localStorage.removeItem(BG_IMAGE_KEY);
+                }
+            }
+
+            // Event handlers
+            $('#importBtn').click(function() {
+                $('#fileInput').click();
+            });
+
+            $('#fileInput').change(function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const content = e.target.result;
+                        let importedNames = [];
+                        
+                        if (file.name.endsWith('.csv')) {
+                            // Parse CSV
+                            const lines = content.split('\n');
+                            let nameColumnIndex = -1;
+                            
+                            // Check first line for headers
+                            const firstLine = lines[0].toLowerCase();
+                            const possibleHeaders = ['name', 'student', 'participant', 'member', 'person'];
+                            const cells = firstLine.split(',').map(cell => cell.trim().replace(/"/g, ''));
+                            
+                            for (let i = 0; i < cells.length; i++) {
+                                if (possibleHeaders.some(header => cells[i].includes(header))) {
+                                    nameColumnIndex = i;
+                                    break;
+                                }
+                            }
+                            
+                            // If no header found, find first non-numeric column
+                            if (nameColumnIndex === -1) {
+                                for (let i = 0; i < cells.length; i++) {
+                                    if (isNaN(cells[i]) && cells[i].trim() !== '') {
+                                        nameColumnIndex = i;
+                                        break;
+                                    }
+                                }
+                            }
+                            
+                            // Default to first column if still not found
+                            if (nameColumnIndex === -1) {
+                                nameColumnIndex = 0;
+                            }
+                            
+                            // Parse all lines
+                            lines.forEach((line, index) => {
+                                if (line.trim()) {
+                                    const cells = line.split(',').map(cell => cell.trim().replace(/"/g, ''));
+                                    if (cells[nameColumnIndex] && cells[nameColumnIndex].trim() !== '' && !isNaN(cells[nameColumnIndex]) === false) {
+                                        const name = toCamelCase(cells[nameColumnIndex].trim());
+                                        if (name && !importedNames.includes(name)) {
+                                            importedNames.push(name);
+                                        }
+                                    }
+                                }
+                            });
+                        } else {
+                            // Parse text file
+                            const lines = content.split(/[\n,]/);
+                            lines.forEach(line => {
+                                const name = toCamelCase(line.trim());
+                                if (name && !isNaN(name) === true && !importedNames.includes(name)) {
+                                    importedNames.push(name);
+                                }
+                            });
+                        }
+                        
+                        if (importedNames.length >= 2) {
+                            names = importedNames;
+                            saveToStorage();
+                            renderNames();
+                            $('#results').addClass('hidden');
+                            $('#namesList').show();
+                            $('#editBtn').hide();
+                        } else {
+                            alert('Please import at least 2 valid names.');
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+                
+                // Clear the input
+                $(this).val('');
+            });
+            
+            $('#randomizeBtn').click(randomizeNames);
+            
+            // Edit button click handler
+            $('#editBtn').click(function() {
+                $('#namesList').show();
+                $('#editBtn').hide();
+                // Automatically put first name in edit mode
+                setTimeout(() => {
+                    $('.name-card[data-index="0"]').click();
+                }, 50);
+            });
+            
+            // Keyboard shortcuts
+            $(document).keydown(function(e) {
+                // Handle Escape key for closing popups (works even when typing in input fields)
+                if (e.key === 'Escape') {
+                    // Close Settings modal
+                    if (!$('#settingsModal').hasClass('hidden')) {
+                        $('#cancelSettings').click();
+                        return;
+                    }
+                    // Close Help modal
+                    if (!$('#helpModal').hasClass('hidden')) {
+                        $('#closeHelp').click();
+                        return;
+                    }
+                    // Close Groups modal
+                    if (!$('#groupsModal').hasClass('hidden')) {
+                        $('#cancelGroups').click();
+                        return;
+                    }
+                }
+                
+                // Ignore if modifier keys are pressed (Ctrl, Cmd, Alt, Shift with other keys)
+                if (e.ctrlKey || e.metaKey || e.altKey) {
+                    return;
+                }
+                
+                // Ignore other keys if user is typing in an input field
+                if ($(e.target).is('input, textarea')) {
+                    return;
+                }
+                
+                // Convert key to uppercase for comparison
+                const key = e.key.toUpperCase();
+                
+                switch(key) {
+                    case 'R':
+                        $('#randomizeBtn').click();
+                        break;
+                    case 'E':
+                        if ($('#editBtn').is(':visible')) {
+                            $('#editBtn').click();
+                        }
+                        break;
+                    case 'C':
+                        $('#clearBtn').click();
+                        break;
+                    case 'G':
+                        $('#groupsBtn').click();
+                        break;
+                }
+            });
+            
+            // Groups functionality
+            $('#groupsBtn').click(function() {
+                loadGroups();
+                displayGroups();
+                $('#groupsModal').removeClass('hidden');
+            });
+            
+            $('#closeGroupsModal').click(function() {
+                $('#groupsModal').addClass('hidden');
+            });
+            
+            $('#saveGroups').click(function() {
+                saveGroups();
+                $('#groupsModal').addClass('hidden');
+            });
+
+            $('#cancelGroups').click(function() {
+                $('#groupsModal').addClass('hidden');
+            });
+            
+            // Create new group
+            $('#createGroupBtn').click(function() {
+                const groupName = $('#newGroupName').val().trim();
+                if (groupName) {
+                    groups.push({
+                        id: Date.now().toString(),
+                        name: groupName,
+                        members: []
+                    });
+                    $('#newGroupName').val('');
+                    saveGroups();
+                    displayGroups();
+                }
+            });
+            
+            // Load groups from storage
+            function loadGroups() {
+                const stored = localStorage.getItem(GROUPS_KEY);
+                if (stored) {
+                    groups = JSON.parse(stored);
+                }
+            }
+            
+            // Save groups to storage
+            function saveGroups() {
+                localStorage.setItem(GROUPS_KEY, JSON.stringify(groups));
+            }
+            
+            // Display groups and available names
+            function displayGroups() {
+                console.log('DisplayGroups called - Current groups:', JSON.stringify(groups));
+                // Display available names
+                const $availableNames = $('#availableNames');
+                $availableNames.empty();
+                
+                // Get all names that are not in any group
+                const groupedNames = groups.flatMap(g => g.members);
+                const availableNames = names.filter(name => !groupedNames.includes(name));
+                
+                if (availableNames.length === 0) {
+                    $availableNames.append('<p class="text-gray-500 text-center">All names are in groups</p>');
+                } else {
+                    availableNames.forEach((name, index) => {
+                        const colorIndex = names.indexOf(name) % 20;
+                        const profileUrl = getProfilePictureUrl(name);
+                        const $nameElement = $(`
+                            <div class="inline-block px-4 py-3 rounded-lg text-white font-medium name-color-${colorIndex} cursor-move hover:shadow-lg transition-all hover:scale-105" 
+                                 style="margin: 8px;"
+                                 draggable="true" 
+                                 ondragstart="handleDragStart(event, '${name.replace(/'/g, "\\'")}')"
+                                 ondragend="handleDragEnd(event)">
+                                <img src="${profileUrl}" alt="${name}" class="w-4 h-4 rounded-full inline mr-2" onerror="this.style.display='none'">
+                                ${name}
+                            </div>
+                        `);
+                        $availableNames.append($nameElement);
+                    });
+                }
+                
+                // Display groups
+                const $groupsList = $('#groupsList');
+                $groupsList.empty();
+                
+                if (groups.length === 0) {
+                    $groupsList.append('<div class="col-span-3 text-gray-500">No groups created yet. Create a group above to get started!</div>');
+                } else {
+                    groups.forEach(group => {
+                        const $group = $(`
+                            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4" style="margin: 8px;">
+                                <div class="flex justify-between items-center mb-3">
+                                    <h3 class="group-name text-lg font-bold text-gray-700 dark:text-gray-200 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 px-2 py-1 rounded transition-colors" 
+                                        data-group-id="${group.id}" 
+                                        onclick="editGroupName('${group.id}', this)">${group.name}</h3>
+                                    <button class="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" 
+                                            onclick="deleteGroup('${group.id}')">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                                <div class="bg-white dark:bg-gray-800 rounded-lg p-4 min-h-[150px] border-2 border-dashed border-gray-300 dark:border-gray-600 transition-colors" 
+                                     ondrop="handleDrop(event, '${group.id}')"
+                                     ondragover="handleDragOver(event)"
+                                     ondragleave="handleDragLeave(event)">
+                                    ${group.members.length === 0 ? '<p class="text-gray-400 text-center text-sm">Drag names here</p>' : ''}
+                                </div>
+                            </div>
+                        `);
+                        
+                        // Add group members
+                        const $dropZone = $group.find('.bg-white.dark\\:bg-gray-800').first();
+                        if (group.members.length > 0) {
+                            $dropZone.empty();
+                            group.members.forEach(member => {
+                                const memberIndex = names.indexOf(member) % 20;
+                                const profileUrl = getProfilePictureUrl(member);
+                                const $memberElement = $(`
+                                    <div class="inline-block px-4 py-3 rounded-lg text-white font-medium name-color-${memberIndex} cursor-move hover:shadow-lg transition-all hover:scale-105" 
+                                         style="margin: 8px;"
+                                         draggable="true" 
+                                         ondragstart="handleDragStart(event, '${member.replace(/'/g, "\\'")}')"
+                                         ondragend="handleDragEnd(event)">
+                                        <img src="${profileUrl}" alt="${member}" class="w-4 h-4 rounded-full inline mr-2" onerror="this.style.display='none'">
+                                        ${member}
+                                    </div>
+                                `);
+                                $dropZone.append($memberElement);
+                            });
+                        }
+                        
+                        $groupsList.append($group);
+                    });
+                }
+            }
+            
+            // Global drag and drop handlers
+            let draggedName = null;
+            
+            window.handleDragStart = function(e, name) {
+                draggedName = name;
+                e.target.style.opacity = '0.5';
+                e.dataTransfer.effectAllowed = 'move';
+                console.log('Dragging:', name);
+            };
+            
+            window.handleDragEnd = function(e) {
+                e.target.style.opacity = '';
+                draggedName = null;
+            };
+            
+            window.handleDragOver = function(e) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                e.currentTarget.classList.add('border-blue-500', 'bg-blue-50', 'dark:bg-blue-900/20');
+            };
+            
+            window.handleDragLeave = function(e) {
+                e.currentTarget.classList.remove('border-blue-500', 'bg-blue-50', 'dark:bg-blue-900/20');
+            };
+            
+            window.handleDrop = function(e, groupId) {
+                e.preventDefault();
+                e.currentTarget.classList.remove('border-blue-500', 'bg-blue-50', 'dark:bg-blue-900/20');
+                
+                if (!draggedName) {
+                    console.log('No name being dragged');
+                    return;
+                }
+                
+                console.log('Dropping:', draggedName, 'into group:', groupId);
+                
+                // Remove name from all groups
+                groups.forEach(g => {
+                    g.members = g.members.filter(m => m !== draggedName);
+                });
+                
+                // Add to target group if specified
+                if (groupId) {
+                    const group = groups.find(g => g.id === groupId);
+                    if (group) {
+                        group.members.push(draggedName);
+                    }
+                }
+                
+                saveGroups();
+                displayGroups();
+            };
+            
+            window.deleteGroup = function(groupId) {
+                if (confirm('Are you sure you want to delete this group?')) {
+                    groups = groups.filter(g => g.id !== groupId);
+                    saveGroups();
+                    displayGroups();
+                }
+            };
+
+            // Edit group name
+            window.editGroupName = function(groupId, element) {
+                const currentName = element.textContent;
+                const $element = $(element);
+                
+                // Create input field
+                const $input = $('<input type="text" class="group-name-input text-lg font-bold bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-2 border-blue-500 rounded px-2 py-1" style="min-width: 150px;">');
+                $input.val(currentName);
+                
+                // Replace h3 with input
+                $element.hide();
+                $input.insertAfter($element);
+                $input.focus().select();
+                
+                // Handle save on Enter or blur
+                function saveGroupName() {
+                    const newName = $input.val().trim();
+                    if (newName && newName !== currentName) {
+                        // Update group name in data
+                        const group = groups.find(g => g.id === groupId);
+                        if (group) {
+                            group.name = newName;
+                            saveGroups();
+                            displayGroups(); // Re-render to show updated name
+                            return;
+                        }
+                    }
+                    // If no change or empty name, just restore original
+                    $input.remove();
+                    $element.show();
+                }
+                
+                // Save on Enter key
+                $input.keydown(function(e) {
+                    if (e.which === 13) { // Enter key
+                        saveGroupName();
+                    } else if (e.which === 27) { // Escape key
+                        $input.remove();
+                        $element.show();
+                    }
+                });
+                
+                // Save on blur (click outside)
+                $input.blur(function() {
+                    saveGroupName();
+                });
+            };
+
+            $('#clearBtn').click(function() {
+                if (confirm('Are you sure you want to clear the current list? This action cannot be undone.')) {
+                    loadDefaultNames(10);
+                    $('#results').addClass('hidden');
+                    $('#namesList').show();
+                    $('#editBtn').hide();
+                }
+            });
+
+            // Name editing
+            $(document).on('click', '.name-card', function() {
+                const $this = $(this);
+                const index = $this.data('index');
+                const currentName = names[index];
+                const $nameText = $this.find('.name-text');
+                
+                const $input = $(`<input type="text" class="edit-input w-full text-center" value="${currentName}" tabindex="${index + 1}">`);
+                $nameText.hide();
+                $this.append($input);
+                $input.focus().select();
+                
+                $input.blur(function() {
+                    const newName = $(this).val().trim();
+                    if (newName && newName !== currentName) {
+                        editName(index, newName);
+                    } else {
+                        $nameText.show();
+                        $(this).remove();
+                    }
+                });
+                
+                $input.keydown(function(e) {
+                    if (e.which === 13) { // Enter key
+                        $(this).blur();
+                    } else if (e.which === 9) { // Tab key
+                        e.preventDefault();
+                        $(this).blur();
+                        
+                        // Find next name card and trigger edit
+                        const nextIndex = (index + 1) % names.length;
+                        setTimeout(() => {
+                            $(`.name-card[data-index="${nextIndex}"]`).click();
+                        }, 50);
+                    }
+                });
+            });
+
+            // Add name button
+            $(document).on('click', '#addNameBtn', function() {
+                addName();
+            });
+
+            // Settings modal
+            $('#settingsBtn').click(function() {
+                $('#nameCount').val(names.length);
+                $('#themeSelect').val(currentTheme);
+                $('#profileStyleSelect').val(getProfileStyle());
+                $('#bgImageUrl').val(localStorage.getItem(BG_IMAGE_KEY) || '');
+                
+                // Update demo profile picture
+                updateProfileStyleDemo();
+                
+                // Populate names editor
+                const $editor = $('#namesEditor');
+                $editor.empty();
+                names.forEach((name, index) => {
+                    const colorIndex = index % 20;
+                    const $nameEditor = $(`
+                        <div class="flex items-center gap-3 p-2 bg-gray-50 rounded-lg border mb-1" style="background-color: #f9fafb; border-color: #e5e7eb;">
+                            <div class="w-4 h-4 rounded-full name-color-${colorIndex} flex-shrink-0"></div>
+                            <input type="text" class="flex-1 px-3 py-2 border rounded-lg" style="background-color: white; border-color: #d1d5db; color: #1f2937;" value="${name}" data-index="${index}">
+                            <button class="bg-red-500 hover:bg-red-600 text-white w-8 h-8 rounded-lg remove-name font-bold flex items-center justify-center flex-shrink-0" data-index="${index}" ${names.length <= 2 ? 'disabled' : ''}>
+                                ×
+                            </button>
+                        </div>
+                    `);
+                    $editor.append($nameEditor);
+                });
+                
+                $('#settingsModal').removeClass('hidden').addClass('flex').addClass('items-center').addClass('justify-center');
+            });
+
+            // Update demo when profile style changes
+            $('#profileStyleSelect').change(function() {
+                updateProfileStyleDemo();
+            });
+
+            // Update theme in real-time when user selects it
+            $('#themeSelect').change(function() {
+                const selectedTheme = $(this).val();
+                applyTheme(selectedTheme);
+            });
+
+            $('#cancelSettings').click(function() {
+                $('#settingsModal').addClass('hidden').removeClass('flex').removeClass('items-center').removeClass('justify-center');
+            });
+
+            $('#saveSettings').click(function() {
+                // Update name count
+                const newCount = parseInt($('#nameCount').val());
+                if (newCount >= 2 && newCount <= 100) {
+                    if (newCount > names.length) {
+                        // Add names
+                        while (names.length < newCount) {
+                            names.push(`Name ${names.length + 1}`);
+                        }
+                    } else if (newCount < names.length) {
+                        // Remove names
+                        names = names.slice(0, newCount);
+                    }
+                }
+                
+                // Update names from editor
+                $('#namesEditor input').each(function() {
+                    const index = $(this).data('index');
+                    const newName = $(this).val().trim();
+                    if (newName && index < names.length) {
+                        names[index] = toCamelCase(newName);
+                    }
+                });
+                
+                // Update theme
+                const newTheme = $('#themeSelect').val();
+                applyTheme(newTheme);
+                
+                // Update profile style
+                const newProfileStyle = $('#profileStyleSelect').val();
+                localStorage.setItem(PROFILE_STYLE_KEY, newProfileStyle);
+                
+                // Update background image
+                const newBgImage = $('#bgImageUrl').val().trim();
+                applyBackgroundImage(newBgImage);
+                
+                saveToStorage();
+                renderNames();
+                $('#settingsModal').addClass('hidden').removeClass('flex').removeClass('items-center').removeClass('justify-center');
+                $('#results').addClass('hidden');
+                $('#namesList').show();
+                $('#editBtn').hide();
+            });
+
+            // Remove name from settings
+            $(document).on('click', '.remove-name', function() {
+                const index = $(this).data('index');
+                if (names.length > 2) {
+                    names.splice(index, 1);
+                    saveToStorage();
+                    renderNames();
+                    // Re-populate the settings editor with updated indices
+                    const $editor = $('#namesEditor');
+                    $editor.empty();
+                    names.forEach((name, newIndex) => {
+                        const colorIndex = newIndex % 20;
+                        const $nameEditor = $(`
+                            <div class="flex items-center gap-3 p-2 bg-gray-50 rounded-lg border mb-1" style="background-color: #f9fafb; border-color: #e5e7eb;">
+                                <div class="w-4 h-4 rounded-full name-color-${colorIndex} flex-shrink-0"></div>
+                                <input type="text" class="flex-1 px-3 py-2 border rounded-lg" style="background-color: white; border-color: #d1d5db; color: #1f2937;" value="${name}" data-index="${newIndex}">
+                                <button class="bg-red-500 hover:bg-red-600 text-white w-8 h-8 rounded-lg remove-name font-bold flex items-center justify-center flex-shrink-0" data-index="${newIndex}" ${names.length <= 2 ? 'disabled' : ''}>
+                                    ×
+                                </button>
+                            </div>
+                        `);
+                        $editor.append($nameEditor);
+                    });
+                }
+            });
+
+            // Export functionality
+            $('#exportBtn').click(function() {
+                if (lastRandomizedOrder.length > 0) {
+                    let csvContent = "Position,Name\n";
+                    lastRandomizedOrder.forEach((name, index) => {
+                        csvContent += `${index + 1},"${name}"\n`;
+                    });
+                    
+                    const blob = new Blob([csvContent], { type: 'text/csv' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'randomized_names.csv';
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                }
+            });
+
+            // Share functionality
+            $('#shareBtn').click(function() {
+                if (lastRandomizedOrder.length > 0) {
+                    const list = lastRandomizedOrder.map((name, index) => `${index + 1}. ${name}`).join('\n');
+                    const text = `Random Name Picker Results:\n\n${list}\n\nGenerated with Random Name Picker`;
+                    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+                    window.open(url, '_blank');
+                }
+            });
+
+            // Screenshot functionality
+            $('#screenshotBtn').click(function() {
+                if (lastRandomizedOrder.length > 0) {
+                    // Load html2canvas from CDN if not already loaded
+                    if (typeof html2canvas === 'undefined') {
+                        const script = document.createElement('script');
+                        script.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+                        script.onload = function() {
+                            takeScreenshot();
+                        };
+                        document.head.appendChild(script);
+                    } else {
+                        takeScreenshot();
+                    }
+                } else {
+                    alert('Please randomize names first to take a screenshot.');
+                }
+            });
+
+            function takeScreenshot() {
+                const resultsElement = document.getElementById('results');
+                const buttonsContainer = resultsElement.querySelector('.flex.justify-center.gap-4.mb-6');
+                const date = new Date().toISOString().split('T')[0];
+                const filename = `names-${date}.png`;
+
+                // Temporarily hide buttons and add padding for screenshot
+                if (buttonsContainer) {
+                    buttonsContainer.style.display = 'none';
+                }
+                resultsElement.style.padding = '30px';
+                resultsElement.style.backgroundColor = '#ffffff';
+
+                html2canvas(resultsElement, {
+                    backgroundColor: '#ffffff',
+                    scale: 2,
+                    useCORS: true
+                }).then(canvas => {
+                    // Restore buttons and remove temporary padding
+                    if (buttonsContainer) {
+                        buttonsContainer.style.display = '';
+                    }
+                    resultsElement.style.padding = '';
+                    resultsElement.style.backgroundColor = '';
+                    // Create download link
+                    const link = document.createElement('a');
+                    link.download = filename;
+                    link.href = canvas.toDataURL();
+                    link.click();
+
+                    // Copy to clipboard
+                    canvas.toBlob(blob => {
+                        if (navigator.clipboard && window.ClipboardItem) {
+                            navigator.clipboard.write([
+                                new ClipboardItem({
+                                    'image/png': blob
+                                })
+                            ]).then(() => {
+                                alert('Screenshot saved and copied to clipboard!');
+                            }).catch(() => {
+                                alert('Screenshot saved! (Could not copy to clipboard)');
+                            });
+                        } else {
+                            alert('Screenshot saved!');
+                        }
+                    }, 'image/png');
+                }).catch(error => {
+                    // Restore buttons and remove temporary padding on error
+                    if (buttonsContainer) {
+                        buttonsContainer.style.display = '';
+                    }
+                    resultsElement.style.padding = '';
+                    resultsElement.style.backgroundColor = '';
+                    console.error('Screenshot failed:', error);
+                    alert('Screenshot failed. Please try again.');
+                });
+            }
+
+            // Theme button
+            $('#themeBtn').click(function() {
+                const themes = ['light', 'dark', 'ocean', 'sunset', 'forest', 'purple'];
+                const currentIndex = themes.indexOf(currentTheme);
+                const nextTheme = themes[(currentIndex + 1) % themes.length];
+                applyTheme(nextTheme);
+                $('#themeSelect').val(nextTheme);
+            });
+
+            // Help modal
+            $('#helpBtn').click(function() {
+                $('#helpModal').removeClass('hidden').addClass('flex');
+            });
+            
+            $('#closeHelp').click(function() {
+                $('#helpModal').removeClass('flex').addClass('hidden');
+            });
+            
+            // Click outside help modal to close
+            $('#helpModal').click(function(e) {
+                if (e.target === this) {
+                    $(this).removeClass('flex').addClass('hidden');
+                }
+            });
+
+            // Initialize app
+            init();
+        });
+    </script>
+</body>
+</html>
