@@ -36,7 +36,8 @@
             right: 0;
             bottom: 0;
             background: rgba(0, 0, 0, 0.5);
-            z-index: 0;
+            z-index: -1;
+            pointer-events: none;
         }
         
         .bg-overlay > * {
@@ -123,7 +124,7 @@
             width: 100vw;
             height: 100vh;
             background: rgba(0, 0, 0, 0.9);
-            z-index: 9999;
+            z-index: 10000;
             backdrop-filter: blur(5px);
         }
         
@@ -144,10 +145,16 @@
 <body class="min-h-screen flex flex-col transition-colors duration-300">
     <div id="app" class="flex-1 flex flex-col min-h-screen">
         <!-- Header -->
-        <header class="custom-bg shadow-lg p-4">
+        <header class="custom-bg shadow-lg p-4" style="position: relative; z-index: 100;">
             <div class="container mx-auto flex justify-between items-center">
                 <h1 class="text-2xl font-bold">Random Name Picker</h1>
                 <div class="flex gap-2">
+                    <!-- Add Name Button -->
+                    <button id="addNameBtn" class="p-2 rounded-full hover:bg-white/20 transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                    </button>
                     <!-- Import Button -->
                     <button id="importBtn" class="p-2 rounded-full hover:bg-white/20 transition-colors">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -181,7 +188,7 @@
         <input type="file" id="fileInput" accept=".txt,.csv" style="display: none;">
 
         <!-- Main Content -->
-        <main class="flex-1 container mx-auto p-4 md:p-8">
+        <main class="flex-1 container mx-auto p-4 md:p-8" style="position: relative; z-index: 10;">
             <!-- Names List -->
             <div id="namesList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
                 <!-- Names will be populated here -->
@@ -219,13 +226,13 @@
         <!-- Footer -->
         <footer class="bg-gray-100 dark:bg-gray-800 mt-auto">
             <div class="container mx-auto p-4 text-center text-sm text-gray-600 dark:text-gray-400">
-                <p>&copy; <span id="currentYear"></span> <a href="https://evoknow.com" target="_blank" class="hover:text-blue-500">EVOKNOW</a>. Licensed under <a href="https://opensource.org/licenses/MIT" target="_blank" class="hover:text-blue-500">MIT License</a>.</p>
+                <p>&copy; <span id="currentYear"></span> <a href="https://evoknow.com" target="_blank" class="hover:text-blue-500">EVOKNOW</a>. Licensed under <a href="https://opensource.org/licenses/MIT" target="_blank" class="hover:text-blue-500">MIT License</a>. | v1.10.0</p>
             </div>
         </footer>
     </div>
 
     <!-- Settings Modal -->
-    <div id="settingsModal" class="fixed inset-0 bg-black bg-opacity-80 hidden z-50 flex items-center justify-center" style="backdrop-filter: blur(5px);">
+    <div id="settingsModal" class="fixed inset-0 bg-black bg-opacity-80 hidden flex items-center justify-center" style="backdrop-filter: blur(5px); z-index: 10000 !important; position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important;">
         <div class="bg-white rounded-3xl max-h-[90vh] overflow-y-auto shadow-2xl" style="background-color: white; width: 50vw; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); margin: 2rem; padding: 25px; border-radius: 1.5rem;">
             <h2 class="text-2xl font-bold mb-4" style="color: #1f2937;">Settings</h2>
             
@@ -281,7 +288,7 @@
     </div>
 
     <!-- Help Modal -->
-    <div id="helpModal" class="fixed inset-0 bg-black bg-opacity-80 hidden flex items-center justify-center z-50" style="backdrop-filter: blur(5px);">
+    <div id="helpModal" class="fixed inset-0 bg-black bg-opacity-80 hidden flex items-center justify-center" style="backdrop-filter: blur(5px); z-index: 10000 !important; position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important;">
         <div class="bg-white rounded-3xl max-h-[90vh] overflow-y-auto shadow-2xl" style="background-color: white; width: 50vw; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); margin: 2rem; padding: 25px; border-radius: 1.5rem;">
             <h2 class="text-xl font-bold mb-4" style="color: #1f2937;">How to Use Random Name Picker</h2>
             
@@ -452,6 +459,25 @@
                 $('#profileStyleDemo').attr('src', demoUrl).show();
             }
 
+            // Populate the names editor in settings
+            function populateNamesEditor() {
+                const $editor = $('#namesEditor');
+                $editor.empty();
+                names.forEach((name, index) => {
+                    const colorIndex = index % 20;
+                    const $nameEditor = $(`
+                        <div class="flex items-center gap-3 p-2 bg-gray-50 rounded-lg border mb-1" style="background-color: #f9fafb; border-color: #e5e7eb;">
+                            <div class="w-4 h-4 rounded-full name-color-${colorIndex} flex-shrink-0"></div>
+                            <input type="text" class="flex-1 px-3 py-2 border rounded-lg" style="background-color: white; border-color: #d1d5db; color: #1f2937;" value="${name}" data-index="${index}">
+                            <button class="bg-red-500 hover:bg-red-600 text-white w-8 h-8 rounded-lg remove-name font-bold flex items-center justify-center flex-shrink-0" data-index="${index}" ${names.length <= 2 ? 'disabled' : ''}>
+                                ×
+                            </button>
+                        </div>
+                    `);
+                    $editor.append($nameEditor);
+                });
+            }
+
             // Add a new name
             function addName() {
                 const newName = `Name ${names.length + 1}`;
@@ -499,6 +525,7 @@
             
             // Render names
             function renderNames() {
+                console.log('renderNames called with:', names.length, names);
                 const $namesList = $('#namesList');
                 $namesList.empty();
                 
@@ -516,29 +543,38 @@
                     $namesList.append($nameCard);
                 });
 
-                // Add "Add a Name" button
-                const $addButton = $(`
-                    <div class="p-4 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-bold text-center shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 cursor-pointer" id="addNameBtn">
-                        <span>+ Add a Name</span>
-                    </div>
-                `);
-                $namesList.append($addButton);
+                // "Add a Name" button is now in the header as a (+) icon
             }
 
             // Save to localStorage
             function saveToStorage() {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(names));
+                console.log('saveToStorage called with:', names.length, names);
+                console.log('STORAGE_KEY:', STORAGE_KEY);
+                const stringified = JSON.stringify(names);
+                console.log('About to save stringified data:', stringified);
+                localStorage.setItem(STORAGE_KEY, stringified);
+                
+                // Immediately verify the save worked
+                const verification = localStorage.getItem(STORAGE_KEY);
+                console.log('Immediate verification after save:', verification);
+                console.log('Save successful?', stringified === verification);
+                
+                // Log stack trace to see who called this
+                console.trace('saveToStorage called from:');
             }
 
             // Load from localStorage
             function loadFromStorage() {
                 const saved = localStorage.getItem(STORAGE_KEY);
+                console.log('Loading from storage, raw data:', saved);
                 if (saved) {
                     names = JSON.parse(saved);
+                    console.log('Loaded names from storage:', names.length, names);
                     if (names.length < 2) {
                         loadDefaultNames(10);
                     }
                 } else {
+                    console.log('No saved data, loading defaults');
                     loadDefaultNames(10);
                 }
             }
@@ -1068,6 +1104,10 @@
 
             // Settings modal
             $('#settingsBtn').click(function() {
+                console.log('Settings button clicked!');
+                console.log('Current names when opening settings:', names.length, names);
+                console.log('Modal before:', $('#settingsModal').hasClass('hidden'));
+                
                 $('#nameCount').val(names.length);
                 $('#themeSelect').val(currentTheme);
                 $('#profileStyleSelect').val(getProfileStyle());
@@ -1077,23 +1117,16 @@
                 updateProfileStyleDemo();
                 
                 // Populate names editor
-                const $editor = $('#namesEditor');
-                $editor.empty();
-                names.forEach((name, index) => {
-                    const colorIndex = index % 20;
-                    const $nameEditor = $(`
-                        <div class="flex items-center gap-3 p-2 bg-gray-50 rounded-lg border mb-1" style="background-color: #f9fafb; border-color: #e5e7eb;">
-                            <div class="w-4 h-4 rounded-full name-color-${colorIndex} flex-shrink-0"></div>
-                            <input type="text" class="flex-1 px-3 py-2 border rounded-lg" style="background-color: white; border-color: #d1d5db; color: #1f2937;" value="${name}" data-index="${index}">
-                            <button class="bg-red-500 hover:bg-red-600 text-white w-8 h-8 rounded-lg remove-name font-bold flex items-center justify-center flex-shrink-0" data-index="${index}" ${names.length <= 2 ? 'disabled' : ''}>
-                                ×
-                            </button>
-                        </div>
-                    `);
-                    $editor.append($nameEditor);
-                });
+                populateNamesEditor();
                 
                 $('#settingsModal').removeClass('hidden').addClass('flex').addClass('items-center').addClass('justify-center');
+                console.log('Modal after:', $('#settingsModal').hasClass('hidden'));
+                console.log('Modal display:', $('#settingsModal').css('display'));
+                console.log('Modal z-index:', $('#settingsModal').css('z-index'));
+                console.log('Modal position:', $('#settingsModal').css('position'));
+                console.log('Modal opacity:', $('#settingsModal').css('opacity'));
+                console.log('Modal visibility:', $('#settingsModal').css('visibility'));
+                console.log('Body has bg-overlay:', $('body').hasClass('bg-overlay'));
             });
 
             // Update demo when profile style changes
@@ -1120,20 +1153,31 @@
                         while (names.length < newCount) {
                             names.push(`Name ${names.length + 1}`);
                         }
+                        // Update the settings editor to show new names
+                        populateNamesEditor();
                     } else if (newCount < names.length) {
                         // Remove names
                         names = names.slice(0, newCount);
+                        // Update the settings editor to reflect removed names
+                        populateNamesEditor();
                     }
                 }
                 
-                // Update names from editor
+                // Update names from editor - rebuild array from current inputs only
+                const updatedNames = [];
                 $('#namesEditor input').each(function() {
-                    const index = $(this).data('index');
                     const newName = $(this).val().trim();
-                    if (newName && index < names.length) {
-                        names[index] = toCamelCase(newName);
+                    if (newName) {
+                        updatedNames.push(toCamelCase(newName));
                     }
                 });
+                
+                // Only update if we have valid names
+                if (updatedNames.length >= 2) {
+                    names = updatedNames;
+                } else {
+                    console.log('Warning: Not enough valid names from editor, keeping current names');
+                }
                 
                 // Update theme
                 const newTheme = $('#themeSelect').val();
@@ -1158,26 +1202,23 @@
             // Remove name from settings
             $(document).on('click', '.remove-name', function() {
                 const index = $(this).data('index');
+                console.log('Removing name at index:', index, 'Name:', names[index]);
+                console.log('Names before removal:', names.length, names);
                 if (names.length > 2) {
                     names.splice(index, 1);
+                    console.log('Names after removal:', names.length, names);
                     saveToStorage();
+                    
+                    // Verify what was actually saved
+                    const savedCheck = localStorage.getItem(STORAGE_KEY);
+                    console.log('Verification - what is actually in localStorage:', savedCheck);
+                    console.log('Parsed saved data:', JSON.parse(savedCheck));
+                    
                     renderNames();
                     // Re-populate the settings editor with updated indices
-                    const $editor = $('#namesEditor');
-                    $editor.empty();
-                    names.forEach((name, newIndex) => {
-                        const colorIndex = newIndex % 20;
-                        const $nameEditor = $(`
-                            <div class="flex items-center gap-3 p-2 bg-gray-50 rounded-lg border mb-1" style="background-color: #f9fafb; border-color: #e5e7eb;">
-                                <div class="w-4 h-4 rounded-full name-color-${colorIndex} flex-shrink-0"></div>
-                                <input type="text" class="flex-1 px-3 py-2 border rounded-lg" style="background-color: white; border-color: #d1d5db; color: #1f2937;" value="${name}" data-index="${newIndex}">
-                                <button class="bg-red-500 hover:bg-red-600 text-white w-8 h-8 rounded-lg remove-name font-bold flex items-center justify-center flex-shrink-0" data-index="${newIndex}" ${names.length <= 2 ? 'disabled' : ''}>
-                                    ×
-                                </button>
-                            </div>
-                        `);
-                        $editor.append($nameEditor);
-                    });
+                    populateNamesEditor();
+                    // Update the number of names field to reflect the new count
+                    $('#nameCount').val(names.length);
                 }
             });
 
@@ -1297,7 +1338,12 @@
 
             // Help modal
             $('#helpBtn').click(function() {
+                console.log('Help button clicked!');
+                console.log('Help modal before:', $('#helpModal').hasClass('hidden'));
                 $('#helpModal').removeClass('hidden').addClass('flex');
+                console.log('Help modal after:', $('#helpModal').hasClass('hidden'));
+                console.log('Help modal display:', $('#helpModal').css('display'));
+                console.log('Help modal z-index:', $('#helpModal').css('z-index'));
             });
             
             $('#closeHelp').click(function() {
